@@ -1,0 +1,41 @@
+[Unit]
+Description=Telegram to VK Publisher Health Check
+After=network.target
+
+[Service]
+Type=oneshot
+User=telegram_vk_publisher
+ExecStart=/home/telegram_vk_publisher/telegram_to_vk_publisher/venv/bin/python -c "
+import asyncio
+import sys
+import os
+sys.path.insert(0, '/home/telegram_vk_publisher/telegram_to_vk_publisher')
+
+from config import load_config
+from database import Database
+
+async def health_check():
+    try:
+        config = load_config()
+        db = Database(config['database'].url)
+        
+        # Проверка подключения к базе данных
+        session = db.get_session()
+        session.execute('SELECT 1')
+        session.close()
+        
+        print('OK: Database connection successful')
+        return 0
+    except Exception as e:
+        print(f'ERROR: {e}')
+        return 1
+
+if __name__ == '__main__':
+    exit_code = asyncio.run(health_check())
+    sys.exit(exit_code)
+"
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
