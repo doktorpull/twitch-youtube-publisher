@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Twitch to YouTube Publisher</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .upload-section {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-top: 2rem;
+        }
+        .video-item {
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        .status-pending { background-color: #ffc107; color: #000; }
+        .status-processing { background-color: #007bff; color: #fff; }
+        .status-uploaded { background-color: #28a745; color: #fff; }
+        .status-failed { background-color: #dc3545; color: #fff; }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="#">Twitch to YouTube Publisher</a>
+            <div class="navbar-nav ms-auto">
+                <button class="btn btn-outline-light" onclick="logout">Выйти</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-md-8">
+                <div class="upload-section">
+                    <h2>Загрузить Twitch видео</h2>
+                    <form id="uploadForm">
+                        <div class="mb-3">
+                            <label for="twitchUrl" class="form-label">Ссылка на Twitch видео</label>
+                            <input type="url" class="form-control" id="twitchUrl" required
+                                   placeholder="https://www.twitch.tv/videos/2903109542">
+                        </div>
+                        <div class="mb-3">
+                            <label for="title" class="form-label">Название видео</label>
+                            <input type="text" class="form-control" id="title" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Описание</label>
+                            <textarea class="form-control" id="description" rows="3" required></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="channel" class="form-label">YouTube канал</label>
+                            <select class="form-select" id="channel" required>
+                                <option value="">Выберите канал</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Загрузить</button>
+                    </form>
+                </div>
+
+                <div class="mt-4">
+                    <h3>Мои видео</h3>
+                    <div id="videosList"></div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Мои каналы</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="channelsList"></div>
+                        <button class="btn btn-sm btn-outline-primary mt-2" onclick="showAddChannelModal()">
+                            + Добавить канал
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for adding channel -->
+    <div class="modal fade" id="addChannelModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Добавить YouTube канал</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addChannelForm">
+                        <div class="mb-3">
+                            <label for="channelName" class="form-label">Название канала</label>
+                            <input type="text" class="form-control" id="channelName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="channelId" class="form-label">ID канала</label>
+                            <input type="text" class="form-control" id="channelId" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="accessToken" class="form-label">Access Token</label>
+                            <input type="text" class="form-control" id="accessToken" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Добавить</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let token = localStorage.getItem('token');
+
+        if (!token) {
+            window.location.href = '/login';
+        }
+
+        function getAuthHeaders() {
+            return { 'Authorization': `Bearer ${token}` };
+        }
+
+        async function loadChannels() {
+            try {
+                const response = await fetch('/api/channels', {
+                    headers: getAuthHeaders()
+                });
+                const channels = await response.json();
+                
+                const select = document.getElementById('channel');
+                select.innerHTML = '<option value="">Выберите канал</option>';
+                
+                channels.forEach(channel => {
+                    const option = document.createElement('option');
+                    option.value = channel._id;
+                    option.textContent = channel.youtubeChannelName;
+                    select.appendChild(option);
+                });
+
+                const channelsList = document.getElementById('channelsList');
+                channelsList.innerHTML = channels.map(channel => `
+                    <div class="mb-2">
+                        <strong>${channel.youtubeChannelName}</strong>
+                        <br>
+                        <small class="text-muted">${channel.youtubeChannelId}</small>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading channels:', error);
+            }
+        }
+
+        async function loadVideos() {
+            try {
+                const response = await fetch('/api/videos', {
+                    headers: getAuthHeaders()
+                });
+                const videos = await response.json();
+                
+                const videosList = document.getElementById('videosList');
+                videosList.innerHTML = videos.map(video => `
+                    <div class="video-item">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h5>${video.title}</h5>
+                                <p class="text-muted">${video.description}</p>
+                                <small class="text-muted">${new Date(video.createdAt).toLocaleString()}</small>
+                            </div>
+                            <span class="status-badge status-${video.status}">${video.status}</span>
+                        </div>
+                        ${video.youtubeUrl ? `
+                            <div class="mt-2">
+                                <a href="${video.youtubeUrl}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                    Смотреть на YouTube
+                                </a>
+                            </div>
+                        ` : ''}
+                        ${video.status === 'pending' ? `
+                            <button class="btn btn-sm btn-success mt-2" onclick="processVideo('${video._id}')">
+                                Обработать
+                            </button>
+                        ` : ''}
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading videos:', error);
+            }
+        }
+
+        async function processVideo(videoId) {
+            try {
+                const response = await fetch(`/api/video-processing/${videoId}/process`, {
+                    method: 'POST',
+                    headers: getAuthHeaders()
+                });
+                const result = await response.json();
+                
+                if (response.ok) {
+                    alert('Видео обработано успешно!');
+                    loadVideos();
+                } else {
+                    alert('Ошибка: ' + result.message);
+                }
+            } catch (error) {
+                alert('Ошибка обработки видео: ' + error.message);
+            }
+        }
+
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = {
+                twitchUrl: document.getElementById('twitchUrl').value,
+                title: document.getElementById('title').value,
+                description: document.getElementById('description').value,
+                channelId: document.getElementById('channel').value
+            };
+
+            try {
+                const response = await fetch('/api/videos/upload', {
+                    method: 'POST',
+                    headers: {
+                        ...getAuthHeaders(),
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                if (response.ok) {
+                    alert('Видео загружено успешно!');
+                    document.getElementById('uploadForm').reset();
+                    loadVideos();
+                } else {
+                    const error = await response.json();
+                    alert('Ошибка: ' + error.message);
+                }
+            } catch (error) {
+                alert('Ошибка загрузки видео: ' + error.message);
+            }
+        });
+
+        document.getElementById('addChannelForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = {
+                youtubeChannelId: document.getElementById('channelId').value,
+                youtubeChannelName: document.getElementById('channelName').value,
+                accessToken: document.getElementById('accessToken').value
+            };
+
+            try {
+                const response = await fetch('/api/channels', {
+                    method: 'POST',
+                    headers: {
+                        ...getAuthHeaders(),
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                if (response.ok) {
+                    alert('Канал добавлен успешно!');
+                    bootstrap.Modal.getInstance(document.getElementById('addChannelModal')).hide();
+                    document.getElementById('addChannelForm').reset();
+                    loadChannels();
+                } else {
+                    const error = await response.json();
+                    alert('Ошибка: ' + error.message);
+                }
+            } catch (error) {
+                alert('Ошибка добавления канала: ' + error.message);
+            }
+        });
+
+        function showAddChannelModal() {
+            const modal = new bootstrap.Modal(document.getElementById('addChannelModal'));
+            modal.show();
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = '/login';
+        }
+
+        // Load data on page load
+        loadChannels();
+        loadVideos();
+    </script>
+</body>
+</html>
