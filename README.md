@@ -10,7 +10,7 @@ Twitch to YouTube Publisher - это современное веб-прилож�
 
 ```bash
 # Скачивание и запуск скрипта установки
-wget https://raw.githubusercontent.com/doktorpull/dokcode/main/twitch-youtube-publisher/install.sh
+wget https://raw.githubusercontent.com/doktorpull/twitch-youtube-publisher/main/install.sh
 chmod +x install.sh
 ./install.sh your-domain.com
 ```
@@ -19,7 +19,7 @@ chmod +x install.sh
 
 1. **Клонируйте репозиторий**
 ```bash
-git clone https://github.com/doktorpull/dokcode.git twitch-youtube-publisher
+git clone https://github.com/doktorpull/twitch-youtube-publisher.git
 cd twitch-youtube-publisher
 ```
 
@@ -121,7 +121,7 @@ npm run dev
 
 ```bash
 # Клонируйте репозиторий
-git clone https://github.com/doktorpull/dokcode.git twitch-youtube-publisher
+git clone https://github.com/doktorpull/twitch-youtube-publisher.git
 cd twitch-youtube-publisher
 
 # Настройте .env файл
@@ -228,7 +228,7 @@ MIT License - см. [LICENSE](LICENSE) файл
 ## 🆘 Поддержка
 
 Если у вас возникли вопросы:
-- Создайте [issue](https://github.com/doktorpull/dokcode/issues)
+- Создайте [issue](https://github.com/doktorpull/twitch-youtube-publisher/issues)
 - Проверите [FAQ](docs/faq.md)
 - Свяжитесь с разработчиком
 
