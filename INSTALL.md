@@ -2,49 +2,20 @@
 
 ## О проекте
 
-Современное веб-приложение на Next.js для автоматической публикации Twitch видео на YouTube каналы. Приложение включает:
-- React интерфейс с современным UI
-- API роуты на Next.js
-- Интеграцию с YouTube API
-- Поддержку Telegram бота
-- Систему управления каналами и видео
+Twitch to YouTube Publisher - это современное веб-приложение на Next.js для автоматической публикации Twitch видео на YouTube каналы. Приложение включает React интерфейс, API роуты на Next.js, интеграцию с YouTube API и поддержку Telegram бота.
 
-## Технологии
+## 🚀 Быстрый старт
 
-- **Frontend**: Next.js 14, React 18, TypeScript
-- **Backend**: Next.js API Routes, Node.js
-- **Database**: MongoDB с Mongoose
-- **Authentication**: NextAuth.js
-- **Styling**: Tailwind CSS
-- **State Management**: TanStack Query
-- **UI Components**: Radix UI
-
-## Требования к серверу
-
-### Минимальные требования:
-- 2 CPU ядра
-- 2GB RAM
-- 25GB SSD пространства
-- Ubuntu 20.04+ / Debian 11+
-
-### Рекомендуемые требования:
-- 4 CPU ядра
-- 4GB RAM
-- 50GB SSD пространства
-- Docker (опционально)
-
-## Быстрая установка
-
-### Автоматическая установка (рекомендуется)
+### Автоматическая установка на VPS (рекомендуется)
 
 ```bash
 # Подключение к серверу
 ssh root@your_server_ip
 
 # Скачивание и запуск скрипта установки
-wget https://raw.githubusercontent.com/doktorpull/dokcode/main/twitch-youtube-publisher/install.sh
+wget https://raw.githubusercontent.com/doktorpull/twitch-youtube-publisher/main/install.sh
 chmod +x install.sh
-./install.sh
+./install.sh your-domain.com
 ```
 
 ### Ручная установка
@@ -80,10 +51,10 @@ mkdir -p /var/www/twitch-youtube-publisher
 cd /var/www/twitch-youtube-publisher
 
 # Клонирование репозитория
-git clone https://github.com/doktorpull/dokcode.git .
+git clone https://github.com/doktorpull/twitch-youtube-publisher.git .
 
 # Установка зависимостей
-npm install --production
+npm install
 
 # Сборка проекта
 npm run build
@@ -125,7 +96,8 @@ module.exports = {
     error_file: '/var/www/twitch-youtube-publisher/logs/err.log',
     out_file: '/var/www/twitch-youtube-publisher/logs/out.log',
     log_file: '/var/www/twitch-youtube-publisher/logs/combined.log',
-    time: true
+    time: true,
+    node_args: '--max-old-space-size=2048'
   }]
 };
 EOF
@@ -232,70 +204,41 @@ ufw allow 'Nginx Full'
 ufw --force enable
 ```
 
-## Docker установка (опционально)
+## 🐳 Docker установка (рекомендуется для продакшена)
 
 ### Использование Docker Compose
 
 ```bash
-# Создание docker-compose.yml
-cat > docker-compose.yml << EOF
-version: '3.8'
+# Клонируйте репозиторий
+git clone https://github.com/doktorpull/twitch-youtube-publisher.git
+cd twitch-youtube-publisher
 
-services:
-  app:
-    build: .
-    ports:
-      - "3000:3000"
-    environment:
-      - NODE_ENV=production
-      - MONGODB_URI=mongodb://mongodb:27017/twitch-yt
-      - YOUTUBE_API_KEY=${YOUTUBE_API_KEY}
-      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
-    depends_on:
-      - mongodb
+# Настройте .env файл
+cp .env.example .env
+# Заполните переменные окружения
 
-  mongodb:
-    image: mongo:6.0
-    volumes:
-      - mongodb_data:/data/db
-    ports:
-      - "27017:27017"
-
-volumes:
-  mongodb_data:
-EOF
-
-# Запуск
+# Запуск Docker Compose
 docker-compose up -d
 ```
 
-### Dockerfile
+### Ручная Docker сборка
 
-```dockerfile
-FROM node:18-alpine
+```bash
+# Сборка образа
+docker build -t twitch-youtube-publisher .
 
-WORKDIR /app
-
-# Копирование package.json и package-lock.json
-COPY package*.json ./
-
-# Установка зависимостей
-RUN npm ci --only=production
-
-# Копирование исходного кода
-COPY . .
-
-# Сборка приложения
-RUN npm run build
-
-# Экспорт порта
-EXPOSE 3000
-
-# Запуск приложения
-CMD ["npm", "start"]
+# Зап контейнера
+docker run -d \
+  --name twitch-youtube-publisher \
+  -p 3000:3000 \
+  -e NODE_ENV=production \
+  -e MONGODB_URI=mongodb://host.docker.internal:27017/twitch-yt \
+  -e YOUTUBE_API_KEY=your-api-key \
+  -e TELEGRAM_BOT_TOKEN=your-bot-token \
+  twitch-youtube-publisher
 ```
 
-## Настройка после установки
+## 🔧 Настройка после установки
 
 ### 1. Настройка YouTube API
 
@@ -332,7 +275,7 @@ systemctl status mongod
 
 Откройте в браузере: `https://your-domain.com`
 
-## Мониторинг и обслуживание
+## 📊 Мониторинг и обслуживание
 
 ### 1. Проверка ресурсов
 
@@ -372,7 +315,7 @@ cd /var/www/twitch-youtube-publisher
 git pull origin main
 
 # Установка зависимостей
-npm install --production
+npm install
 
 # Сборка
 npm run build
@@ -412,13 +355,15 @@ chmod +x /usr/local/bin/backup.sh
 echo "0 2 * * * /usr/local/bin/backup.sh" | crontab -
 ```
 
-## Оптимизация производительности
+## 🔧 Оптимизация производительности
 
 ### 1. Оптимизация Next.js
 
-```bash
-# В next.config.js
-module.exports = {
+Создайте или обновите `next.config.js`:
+
+```javascript
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   experimental: {
     optimizeCss: true,
     optimizePackageImports: ['lodash', 'axios']
@@ -426,8 +371,12 @@ module.exports = {
   images: {
     domains: ['img.youtube.com'],
     formats: ['image/webp']
-  }
+  },
+  compress: true,
+  poweredByHeader: false
 }
+
+module.exports = nextConfig
 ```
 
 ### 2. Оптимизация MongoDB
@@ -467,7 +416,7 @@ http {
 }
 ```
 
-## Безопасность
+## 🔒 Безопасность
 
 ### 1. Настройка Fail2ban
 
@@ -510,10 +459,172 @@ apt install -y unattended-upgrades
 dpkg-reconfigure unattended-upgrades
 ```
 
-## Решение проблем
+### 3. Настройка SSL/TLS
+
+```bash
+# Установка strong SSL
+apt install -y openssl
+
+# Генерация сильного DH параметра
+openssl dhparam -out /etc/ssl/certs/dhparam.pem 2048
+```
+
+## 🚀 Горизонтальное масштабирование
+
+### 1. Использование PM2 кластера
+
+Увеличьте количество экземпляров в `ecosystem.config.js`:
+
+```javascript
+module.exports = {
+  apps: [{
+    name: 'twitch-youtube-publisher',
+    script: 'npm',
+    args: 'start',
+    cwd: '/var/www/twitch-youtube-publisher',
+    instances: 4, // Количество CPU ядер
+    exec_mode: 'cluster',
+    env: {
+      NODE_ENV: 'production',
+      PORT: 3000
+    }
+  }]
+};
+```
+
+### 2. Балансировка нагрузки с Nginx
+
+```nginx
+upstream backend {
+    server 127.0.0.1:3000;
+    server 127.0.0.1:3001;
+    server 127.0.0.1:3002;
+    server 127.0.0.1:3003;
+}
+
+server {
+    location / {
+        proxy_pass http://backend;
+        # ... остальные настройки
+    }
+}
+```
+
+### 3. Использование Redis для сессий
+
+```bash
+# Установка Redis
+apt install -y redis-server
+
+# Настройка в приложении
+# В .env добавить:
+REDIS_URL=redis://localhost:6379
+```
+
+## 🐳 Docker Swarm (для продакшена)
+
+### 1. Инициализация Swarm
+
+```bash
+# На главном узле
+docker swarm init
+
+# На рабочих узлах
+docker swarm join --token <TOKEN> <MANAGER_IP>:2377
+```
+
+### 2. Docker Compose для Swarm
+
+```yaml
+version: '3.8'
+services:
+  app:
+    image: twitch-youtube-publisher:latest
+    deploy:
+      replicas: 4
+      update_config:
+        parallelism: 2
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+    environment:
+      - NODE_ENV=production
+      - MONGODB_URI=mongodb://mongodb:27017/twitch-yt
+    ports:
+      - "80:3000"
+    networks:
+      - app-network
+
+  mongodb:
+    image: mongo:6.0
+    deploy:
+      replicas: 1
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: overlay
+
+volumes:
+  mongodb_data:
+```
+
+## 📚 Дополнительные ресурсы
+
+### Официальная документация
+- [Next.js Documentation](https://nextjs.org/docs)
+- [MongoDB Documentation](https://docs.mongodb.com/)
+- [Nginx Documentation](https://nginx.org/en/docs/)
+- [Docker Documentation](https://docs.docker.com/)
+
+### Мониторинг
+- **PM2**: `pm2 monit`
+- **Nginx**: `nginx -T`
+- **Система**: `htop`, `glances`
+
+### Отладка
+- **Логи приложения**: `pm2 logs twitch-youtube-publisher`
+- **Лошибки Nginx**: `tail -f /var/log/nginx/error.log`
+- **MongoDB**: `mongosh --eval "db.adminCommand('ping')"`
+
+## 🔧 Полезные команды
+
+### Управление приложением
+```bash
+pm2 start ecosystem.config.js    # Запуск
+pm2 stop twitch-youtube-publisher    # Остановка
+pm2 restart twitch-youtube-publisher # Перезапуск
+pm2 delete twitch-youtube-publisher  # Удаление
+pm2 monit                        # Мониторинг
+pm2 logs                         # Логи
+```
+
+### Управление сервисами
+```bash
+systemctl start nginx            # Запуск Nginx
+systemctl stop nginx             # Остановка Nginx
+systemctl restart nginx          # Перезапуск Nginx
+systemctl status nginx          # Статус Nginx
+
+systemctl start mongod          # Запуск MongoDB
+systemctl stop mongod           # Остановка MongoDB
+systemctl restart mongod        # Перезапуск MongoDB
+systemctl status mongod         # Статус MongoDB
+```
+
+### Управление базой данных
+```bash
+mongosh                         # Запуск MongoDB shell
+mongodump --db twitch-yt       # Бэкап базы данных
+mongorestore --db twitch-yt backup/  # Восстановление базы данных
+```
+
+## 🆘 Решение проблем
 
 ### 1. Порт 3000 занят
-
 ```bash
 # Проверка
 lsof -i :3000
@@ -522,17 +633,15 @@ kill -9 <PID>
 ```
 
 ### 2. Next.js не стартует
-
 ```bash
 # Проверка логов
 pm2 logs twitch-youtube-publisher
 
 # Проверка памяти
-node --max-old-space-size=4096 dist/index.js
+node --max-old-space-size=4096 node_modules/.bin/next start
 ```
 
 ### 3. MongoDB не подключается
-
 ```bash
 # Проверка статуса
 systemctl status mongod
@@ -542,7 +651,6 @@ mongosh --eval "db.adminCommand('ping')"
 ```
 
 ### 4. Nginx ошибки
-
 ```bash
 # Проверка конфигурации
 nginx -t
@@ -551,7 +659,16 @@ nginx -t
 systemctl reload nginx
 ```
 
-## Контрольный список после установки
+### 5. SSL сертификат не работает
+```bash
+# Проверка сертификата
+certbot certificates
+
+# Проверка домена
+curl -I https://your-domain.com
+```
+
+## 📋 Контрольный список после установки
 
 - [ ] Сервер обновлен
 - [ ] Node.js установлен
@@ -563,5 +680,7 @@ systemctl reload nginx
 - [ ] .env файл заполнен
 - [ ] Резервное копирование работает
 - [ ] Мониторинг настроен
+- [ ] Оптимизация производительности применена
+- [ ] Безопасность настроена
 
-После выполнения всех шагов ваше приложение будет готово к работе!
+После выполнения всех шагов ваше приложение будет готово к работе! 🚀

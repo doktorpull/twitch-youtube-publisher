@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # Автоматический скрипт установки Twitch to YouTube Publisher на VPS
+# Версия 2.0 - Обновленная для Next.js
 
 set -e
 
@@ -17,8 +18,8 @@ PROJECT_DIR="/var/www/${PROJECT_NAME}"
 SERVICE_NAME="twitch-youtube-publisher"
 DOMAIN=${1:-""} # Передайте домен как первый аргумент
 
-echo -e "${GREEN}🚀 Начинаю установку Twitch to YouTube Publisher на VPS${NC}"
-echo "=================================================="
+echo -e "${GREEN}🚀 Начинаю установку Twitch to YouTube Publisher v2.0 на VPS${NC}"
+echo "=============================================================="
 
 # Проверка root прав
 if [[ $EUID -ne 0 ]]; then
@@ -26,7 +27,7 @@ if [[ $EUID -ne 0 ]]; then
    exit 1
 fi
 
-# Функциы
+# Функции
 log_info() {
     echo -e "${YELLOW}📋 $1${NC}"
 }
@@ -88,12 +89,12 @@ log_success "MongoDB настроен"
 log_info "Шаг 4: Клонирование проекта"
 mkdir -p $PROJECT_DIR
 cd $PROJECT_DIR
-git clone https://github.com/doktorpull/dokcode.git . || echo "Репозиторий уже существует"
+git clone https://github.com/doktorpull/twitch-youtube-publisher.git . || echo "Репозиторий уже существует"
 git checkout main
 
 # Установка зависимостей
 log_step "Установка npm зависимостей"
-npm install --production
+npm install
 
 # Сборка проекта
 log_step "Сборка проекта"
@@ -116,8 +117,28 @@ JWT_SECRET=$(openssl rand -base64 32)
 PORT=3000
 EOF
 
-# Права на .env
+# Создание next.config.js
+cat > $PROJECT_DIR/next.config.js << EOF
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  experimental: {
+    optimizeCss: true,
+    optimizePackageImports: ['lodash', 'axios']
+  },
+  images: {
+    domains: ['img.youtube.com'],
+    formats: ['image/webp']
+  },
+  compress: true,
+  poweredByHeader: false
+}
+
+module.exports = nextConfig
+EOF
+
+# Права на файлы
 chmod 600 $PROJECT_DIR/.env
+chown -R $USER:$USER $PROJECT_DIR
 
 log_success "Окружение настроено"
 
@@ -274,10 +295,85 @@ echo "0 2 * * * /usr/local/bin/backup-$PROJECT_NAME.sh" | crontab -
 
 log_success "Резервное копирование настроено"
 
+# Шаг 11: Настройка оптимизации
+log_info "Шаг 11: Оптимизация системы"
+
+# Оптимизация MongoDB
+cat > /etc/mongod.conf << EOF
+storage:
+  engine: "wiredTiger"
+  wiredTiger:
+    engineConfig:
+      cacheSizeGB: 1
+
+systemLog:
+  destination: file
+  path: /var/log/mongodb/mongod.log
+  logAppend: true
+
+processManagement:
+  fork: true
+
+net:
+  port: 27017
+  bindIp: 127.0.0.1
+EOF
+
+systemctl restart mongod
+
+# Оптимизация Nginx
+cat > /etc/nginx/nginx.conf << EOF
+user www-data;
+worker_processes auto;
+worker_rlimit_nofile 100000;
+
+events {
+    worker_connections 4000;
+    multi_accept on;
+}
+
+http {
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+
+    # Оптимизация производительности
+    sendfile on;
+    tcp_nopush on;
+    tcp_nodelay on;
+    keepalive_timeout 65;
+    types_hash_max_size 2048;
+
+    # Gzip сжатие
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_proxied any;
+    gzip_comp_level 6;
+    gzip_types
+        text/plain
+        text/css
+        text/xml
+        text/javascript
+        application/javascript
+        application/xml+rss
+        application/json;
+
+    # Кеширование
+    proxy_cache_path /var/cache/nginx levels=1:2 keys_zone=api_cache:10m inactive=60m;
+
+    include /etc/nginx/conf.d/*.conf;
+    include /etc/nginx/sites-enabled/*;
+}
+EOF
+
+systemctl restart nginx
+
+log_success "Оптимизация настроена"
+
 # Завершение
 echo ""
-echo -e "${GREEN}🎉 Установка завершена успешно!${NC}"
-echo "=================================="
+echo -e "${GREEN}🎉 Установка Twitch to YouTube Publisher v2.0 завершена успешно!${NC}"
+echo "================================================================"
 echo ""
 echo -e "${YELLOW}📝 Следующие шаги:${NC}"
 echo ""
@@ -293,7 +389,7 @@ echo "   - YOUTUBE_API_KEY"
 echo "   - TELEGRAM_BOT_TOKEN"
 echo "   - MONGODB_URI (если используется внешний MongoDB)"
 echo ""
-echo "3. Перезапустите приложение:"
+echo "4. Перезапустите приложение:"
 echo "   pm2 restart $SERVICE_NAME"
 echo ""
 echo -e "${GREEN}🔗 Доступ к приложению:${NC}"
@@ -316,3 +412,12 @@ echo "   pm2 monit                  - Мониторинг PM2"
 echo "   systemctl status nginx     - Статус Nginx"
 echo "   systemctl status mongod    - Статус MongoDB"
 echo "   tail -f /var/log/nginx/access.log - Логи Nginx"
+echo ""
+echo -e "${GREEN}✨ Новые возможности v2.0:${NC}"
+echo "   - Next.js 14 с App Router"
+echo "   - React 18 с TypeScript"
+echo "   - Tailwind CSS для стилизации"
+echo "   - Улучшенная безопасность"
+echo "   - Оптимизированная производительность"
+echo "   - Docker поддержка"
+echo ""
