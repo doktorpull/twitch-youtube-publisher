@@ -1,42 +1,33 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IChannel extends Document {
-  userId: string;
+  name: string;
+  twitchChannelId: string;
   youtubeChannelId: string;
-  youtubeChannelName: string;
-  accessToken: string;
-  refreshToken?: string;
   isActive: boolean;
   createdAt: Date;
+  updatedAt: Date;
 }
 
-const channelSchema = new Schema({
-  userId: {
+const channelSchema = new Schema<IChannel>({
+  name: {
     type: String,
     required: true,
-    index: true
+  },
+  twitchChannelId: {
+    type: String,
+    required: true,
   },
   youtubeChannelId: {
     type: String,
-    required: true
-  },
-  youtubeChannelName: {
-    type: String,
-    required: true
-  },
-  accessToken: {
-    type: String,
-    required: true
-  },
-  refreshToken: {
-    type: String
+    required: true,
   },
   isActive: {
     type: Boolean,
-    default: true
-  }
+    default: true,
+  },
 }, {
-  timestamps: true
+  timestamps: true,
 });
 
-export const Channel = mongoose.model<IChannel>('Channel', channelSchema);
+export const Channel = mongoose.models.Channel || mongoose.model<IChannel>('Channel', channelSchema);

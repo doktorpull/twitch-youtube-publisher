@@ -1,57 +1,49 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IVideo extends Document {
-  userId: string;
-  twitchUrl: string;
-  youtubeUrl?: string;
   title: string;
   description: string;
-  status: 'pending' | 'processing' | 'uploaded' | 'failed';
-  youtubeVideoId?: string;
+  url: string;
+  duration: number;
+  thumbnailUrl: string;
   channelId: string;
-  errorMessage?: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
   createdAt: Date;
   updatedAt: Date;
 }
 
-const videoSchema = new Schema({
-  userId: {
-    type: String,
-    required: true,
-    index: true
-  },
-  twitchUrl: {
-    type: String,
-    required: true
-  },
-  youtubeUrl: {
-    type: String
-  },
+const videoSchema = new Schema<IVideo>({
   title: {
     type: String,
-    required: true
+    required: true,
   },
   description: {
     type: String,
-    required: true
+    default: '',
   },
-  status: {
+  url: {
     type: String,
-    enum: ['pending', 'processing', 'uploaded', 'failed'],
-    default: 'pending'
+    required: true,
   },
-  youtubeVideoId: {
-    type: String
+  duration: {
+    type: Number,
+    default: 0,
+  },
+  thumbnailUrl: {
+    type: String,
+    default: '',
   },
   channelId: {
     type: String,
-    required: true
+    required: true,
   },
-  errorMessage: {
-    type: String
-  }
+  status: {
+    type: String,
+    enum: ['pending', 'processing', 'completed', 'failed'],
+    default: 'pending',
+  },
 }, {
-  timestamps: true
+  timestamps: true,
 });
 
-export const Video = mongoose.model<IVideo>('Video', videoSchema);
+export const Video = mongoose.models.Video || mongoose.model<IVideo>('Video', videoSchema);
